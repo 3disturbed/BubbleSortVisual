@@ -153,13 +153,15 @@
                     <option value="1000">Slow</option>
                     <option value="500" selected>Normal</option>
                     <option value="100">Fast</option>
-                    <option value="0">Instant</option>
+                    <option value="50">Very Fast</option>
+                    <option value="10">Ultra Fast</option>
+                    <option value="0">Web Browser Limited</option>
                 </select><br><br><h3>Sort Algorithm </h3>
                 <p>Enhanced Bubble Sort will skip the last x elements after each pass, where x is the pass number.</p>
                 <button id="sortButton">Perform Bubble Sort</button>
                 <button id="enhsortButton">Perform Enhanced Bubble Sort</button>
-               
-
+                <button id="recursiveSortButton">Perform Recursive Sort</button>
+                <button id="marchingSortButton">Perform (Swap Based) Insertion Sort</button>
 
 
             </div>
@@ -187,16 +189,131 @@
     const visualizer = document.getElementById('visualizer');
     const numberInput = document.getElementById('numberInput');
     const addNumberButton = document.getElementById('addNumberButton');
+    const marchingSortButton = document.getElementById('marchingSortButton');
+    const recursiveSortButton = document.getElementById('recursiveSortButton');
+
     const sortButton = document.getElementById('sortButton');
     const resetButton = document.getElementById('resetButton');
     const swapCountDiv = document.getElementById('swapCount');
     const speedSelect = document.getElementById('speedSelect');
     const swapCountPrev = document.getElementById('swapCountPrev');
+    
+    async function SwapInsertionSortVisualized(array, delay) {
+        let arr = array.slice(); // Copy the array to avoid mutating the original
+        let len = arr.length;
+        let isSorted = false;
+        let pass = 0;
+        let cycle = 0;
+        let movementCount = 0;
+        let startTime = Date.now();
+        let timeTaken = 0;
+
+        // Clear the visualizer before sorting
+        visualizer.innerHTML = '';
+       
+        renderArray(arr); // Initial state
+        startTime = Date.now();
+
+
+   
+            for (let i = 1; i < len - pass; i++) {
+                // Highlight the element being compared
+                
+                timeTaken += Date.now() - startTime;
+                renderArray(arr, [i - 1, i]);
+                startTime = Date.now();
+                cycle++;
+                if (arr[i] < arr[i - 1]) {
+                    // Shift the current element left until it's in the correct position
+                    let j = i;
+                    while (j > 0 && arr[j] < arr[j - 1]) {
+                        // Highlight the shift
+                        timeTaken += Date.now() - startTime;
+                        renderArray(arr, [j - 1, j], [j - 1, j]);
+                        startTime = Date.now();
+                        cycle++;
+                        // Swap the elements
+                        [arr[j], arr[j - 1]] = [arr[j - 1], arr[j]];
+                        movementCount++;
+                        swapCount++;
+                        isSorted = false;
+
+                        timeTaken += Date.now() - startTime;
+                        swapCountDiv.innerHTML = `<p>Movements: ${movementCount} (Pass ${pass + 1}) total cycles: ${cycle} Time Taken(Compute*) : ${timeTaken}ms</p>`; 
+                        await sleep(delay);
+                        startTime = Date.now();
+                        j--;
+                    }
+                }
+                timeTaken += Date.now() - startTime;
+                await sleep(delay);
+                startTime = Date.now();
+            }
+           
+        
+
+        swapCountPrev.innerHTML += `<p>(Swap Based) Insertion Sort<br>Movements: ${movementCount} (Pass ${pass}) total cycles: ${cycle} Time Taken(Compute**) : ${timeTaken}ms</p>`;
+        // Final state
+        renderArray(arr);
+        isSorting = false;
+    }
+ // Event listener to start the marching bubble sort visualization
+ marchingSortButton.addEventListener('click', () => {
+        if (isSorting) return;
+
+        if (numberArray.length === 0) {
+            alert('Please add some numbers to sort.');
+            return;
+        }
+
+        isSorting = true;
+        disableControls(true);
+        swapCount = 0;
+        swapCountDiv.innerHTML = `Movements: ${swapCount}`;
+        SwapInsertionSortVisualized(numberArray, parseInt(speedSelect.value))
+            .then(() => {
+                disableControls(false);
+            })
+            .catch(() => {
+                disableControls(false);
+            });
+    });
+  
+
+    // Event listener to add a number to the array
+    addNumberButton.addEventListener('click', () => {
+        if (isSorting) return;
+
+        const num = parseInt(numberInput.value);
+        if (!isNaN(num)) {
+            if (numberArray.includes(num)) {
+                alert('Number already exists in the array.');
+                return;
+            }
+            numberArray.push(num);
+            renderArray(numberArray);
+            numberInput.value = ''; // Clear the input field
+        } else {
+            alert('Please enter a valid number.');
+        }
+    });
+    
+
     // Function to render the array as divs
+   
     function renderArray(array, highlightIndices = [], swapIndices = []) {
         const row = document.createElement('div');
         row.classList.add('row');
-
+        
+        // Deleta all but the last 10 rows
+        let children = visualizer.children.length;
+        if(children > 20)
+        {
+            for(let i = 0; i < children - 20; i++)
+            {
+                visualizer.removeChild(visualizer.children[0]);
+            }
+        }
         array.forEach((num, index) => {
             const numberDiv = document.createElement('div');
             numberDiv.classList.add('number');
@@ -240,7 +357,8 @@
         let arr = array.slice(); // Copy the array to avoid mutating the original
         let len = arr.length;
         let isSorted = false;
-        
+        let lastVal = -0;
+        let lastValIndex = -0;
 
         // Clear the visualizer before sorting
         visualizer.innerHTML = '';
@@ -259,8 +377,10 @@
             }
             for (let i = 0; i < len - enh - 1; i++) {
                 // Highlight the two elements being compared
-                renderArray(arr, [i, i + 1]);
                 
+                timeTaken += Date.now() - startTime;
+                renderArray(arr, [i, i + 1]);
+                startTime = Date.now();
                 cycle++;   
                 if (arr[i] > arr[i + 1]) {
                     // Swap the elements
@@ -268,12 +388,14 @@
                     swapCount++;
                     isSorted = false;
                     // Highlight the swapped elements
+                    timeTaken += Date.now() - startTime;
                     renderArray(arr, [i, i + 1], [i, i + 1]);
+                    startTime = Date.now();
                     
                 }
-                let cyclesPerSwap = cycle / swapCount;
+                let cyclesPerSwap = swapCount === 0 ? 0 : (cycle / swapCount);
                 timeTaken += Date.now() - startTime;
-                swapCountDiv.innerHTML = `<p>Swaps: ${swapCount} (Pass ${pass + 1}) total cycles: ${cycle} Ratio ${cyclesPerSwap.toFixed(2)} cycles per swap, Time Taken(Compute*) : ${timeTaken }ms</p>`; 
+                swapCountDiv.innerHTML = `<p>Swaps: ${swapCount} (Pass ${pass + 1}) total cycles: ${cycle} Ratio ${cyclesPerSwap.toFixed(2)} cycles per swap, Time Taken(Compute*) : ${timeTaken}ms</p>`; 
                 await sleep(delay);
                 startTime = Date.now();
             }
@@ -286,6 +408,94 @@
         renderArray(arr);
         isSorting = false;
     }
+
+    // Function to perform recursive sort and visualize each step
+    async function recursiveSortVisualized(originalArray, delay) {
+        let choppedArray = originalArray.slice();
+        let newArray = [];
+        let cycle = 0;
+        let swapCountLocal = 0;
+        let startTime = Date.now();
+        let timeTaken = 0;
+
+        // Clear the visualizer before sorting
+        visualizer.innerHTML = '';
+        renderArray(choppedArray); // Initial state
+     
+        startTime = Date.now();
+        async function recursiveSort(chopped) {
+            
+            if (chopped.length === 0) {
+                // Final state
+                timeTaken += Date.now() - startTime;
+                renderArray(newArray);
+                startTime = Date.now();
+                return;
+            }
+
+            // Find the index of the lowest element
+            let minIndex = 0;
+            for (let i = 0; i < chopped.length; i++) {
+                cycle++;
+                timeTaken += Date.now() - startTime;
+                renderArray(chopped, [i]);     
+                startTime = Date.now();           
+                if (chopped[i] < chopped[minIndex]) {
+                    minIndex = i;
+                }
+            }
+
+            // Highlight the elements being compared
+            timeTaken += Date.now() - startTime;
+            renderArray(chopped, [minIndex], [minIndex]);
+            startTime = Date.now();
+            
+
+            // Append the lowest element to newArray
+            newArray.push(chopped[minIndex]);
+            swapCountLocal++; // Counting selection as a swap for logging
+
+            // Remove the lowest element from choppedArray
+            chopped.splice(minIndex, 1);
+            timeTaken += Date.now() - startTime;
+            renderArray(newArray, [], [newArray.length - 1]);
+            swapCountDiv.innerHTML = `<p>Swaps: ${swapCountLocal} (Recursive Call) total cycles: ${cycle} Time Taken(Compute*) : ${timeTaken}ms</p>`;
+            swapCountDiv.innerHTML = `<p>Swaps: ${swapCountLocal} (Recursive Call) total cycles: ${cycle} Time Taken(Compute*) : ${timeTaken}ms</p>`;
+            await sleep(delay);
+            startTime = Date.now();
+
+            // Recursive call
+            await recursiveSort(chopped);
+            
+        }
+
+        await recursiveSort(choppedArray);
+        timeTaken += Date.now() - startTime;
+        startTime = Date.now();
+        swapCountPrev.innerHTML += `<p>Recursive Sort<br>Swaps: ${swapCountLocal} total cycles: ${cycle} Time Taken(Compute**) : ${timeTaken}ms</p>`;
+        isSorting = false;
+    }
+     // Event listener to start the recursive sort visualization
+     recursiveSortButton.addEventListener('click', () => {
+        if (isSorting) return;
+
+        if (numberArray.length === 0) {
+            alert('Please add some numbers to sort.');
+            return;
+        }
+
+        isSorting = true;
+        disableControls(true);
+        swapCount = 0;
+        swapCountDiv.innerHTML = `Swaps: ${swapCount}`;
+        recursiveSortVisualized(numberArray, parseInt(speedSelect.value))
+            .then(() => {
+                disableControls(false);
+            })
+            .catch(() => {
+                disableControls(false);
+            });
+    });
 
     // Helper function to create delays
     function sleep(ms) {
