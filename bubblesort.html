@@ -112,7 +112,8 @@
 <div id="controls">
     <input type="number" id="numberInput" placeholder="Enter a number">
     <button id="addNumberButton">Add Number</button>
-   
+    <button id="addRandomButton">Add Randoms</button>
+       
     <button id="resetButton">Reset</button>
     <label for="speedSelect">Speed:</label>
     <select id="speedSelect">
@@ -126,13 +127,14 @@
     <button id="sortButton">Bubble Sort</button>
     <button id="enhsortButton"> Enhanced Bubble Sort</button>
 </div>
+<div id="swapCountPrev"><p>Log</p></div>
 
 <div id="swapCount"><p>Swaps: 0 (Pass 0) total cycles: 0</p></div>
 
 <div id="visualizer"></div>
 <p>Yellow indicates the two elements being compared. Green indicates the two elements being swapped.</p>
 <p>Enhanced Bubble Sort will skip the last x elements after each pass, where x is the pass number.</p>
-
+<p>Time Taken Compute* takes account for simulation speed and only shows actual compute time + UI Update, ** This still includes UI Update, As the same amount of UI update is required at any play speed this is still a fair comparison.</p>
 <p>Created by Ben Darlington </p>
 <script>
     let numberArray = [];
@@ -145,7 +147,7 @@
     const resetButton = document.getElementById('resetButton');
     const swapCountDiv = document.getElementById('swapCount');
     const speedSelect = document.getElementById('speedSelect');
-
+    const swapCountPrev = document.getElementById('swapCountPrev');
     // Function to render the array as divs
     function renderArray(array, highlightIndices = [], swapIndices = []) {
         const row = document.createElement('div');
@@ -203,6 +205,8 @@
         let pass = 0;
         let cycle = 0;
         let enh = 0;
+        let startTime = Date.now();
+        let timeTaken = 0;
         while (!isSorted && pass < len - 1) {
             isSorted = true;
             if(enhanced)
@@ -223,16 +227,19 @@
                     renderArray(arr, [i, i + 1], [i, i + 1]);
                     
                 }
-                swapCountDiv.innerHTML = `<p>Swaps: ${swapCount} (Pass ${pass + 1}) total cycles: ${cycle}</p>`; 
+                let cyclesPerSwap = cycle / swapCount;
+                timeTaken += Date.now() - startTime;
+                swapCountDiv.innerHTML = `<p>Swaps: ${swapCount} (Pass ${pass + 1}) total cycles: ${cycle} Ratio ${cyclesPerSwap.toFixed(2)} cycles per swap, Time Taken(Compute*) : ${timeTaken }ms</p>`; 
                 await sleep(delay);
+                startTime = Date.now();
             }
 
             pass++;
         }
-
+        
+        swapCountPrev.innerHTML += `<p>Swaps: ${swapCount} (Pass ${pass}) total cycles: ${cycle} Time Taken(Compute**) : ${timeTaken}ms</p>`;
         // Final state
         renderArray(arr);
-        alert(`Array is sorted in ${swapCount} swaps!`);
         isSorting = false;
     }
 
@@ -240,6 +247,41 @@
     function sleep(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
+    addRandomButton.addEventListener('click', () => {
+        if (isSorting) return;
+
+        const input = prompt("Enter the number of random unique numbers to add:");
+        if (input === null) return; // User canceled
+        const count = parseInt(input);
+        if (isNaN(count) || count <= 0) {
+            alert("Please enter a valid positive integer.");
+            return;
+        }
+
+        // Define the range for random numbers
+        const MIN = 1;
+        const MAX = 1000; // Adjust as needed
+
+        // Calculate how many unique numbers are possible
+        const possibleNumbers = MAX - MIN + 1;
+        if (count > possibleNumbers - numberArray.length) {
+            alert(`Cannot add ${count} unique numbers. Maximum possible unique numbers is ${possibleNumbers - numberArray.length}.`);
+            return;
+        }
+
+        // Generate unique random numbers
+        const newNumbers = new Set();
+        while (newNumbers.size < count) {
+            const rand = Math.floor(Math.random() * (MAX - MIN + 1)) + MIN;
+            if (!numberArray.includes(rand) && !newNumbers.has(rand)) {
+                newNumbers.add(rand);
+            }
+        }
+
+        numberArray = numberArray.concat(Array.from(newNumbers));
+        renderArray(Array.from(newNumbers));
+        renderArray(numberArray);
+    });
 
     // Event listener to start the bubble sort visualization
     sortButton.addEventListener('click', () => {
@@ -285,7 +327,7 @@
     // Event listener for the Reset button
     resetButton.addEventListener('click', () => {
         if (isSorting) return;
-
+        swapCountPrev.innerHTML = `<p>Log</p>`;
         numberArray = [];
         swapCount = 0;
         swapCountDiv.textContent = `Swaps: ${swapCount}`;
@@ -300,6 +342,8 @@
         numberInput.disabled = status;
         speedSelect.disabled = status;
     }
+    numberArray = [5,2, 1, 4, 3];
+    renderArray(numberArray);
 </script>
 
 </body>
