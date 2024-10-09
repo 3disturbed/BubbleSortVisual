@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bubble Sort Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 4px;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: rgb(33, 32, 32);
+            color: rgb(174, 174, 174);
+            height: 99vh;
+            text-align: center;
+        }
+        #visualizer {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            height: 65%; /* Fixed height */
+            border-radius: 20px;
+            background-color: rgb(42, 41, 41,0.5);
+            box-shadow: 5px 5px 10px rgba(32, 32, 32, 1);
+            overflow-y: auto;   /* Enable vertical scrolling */
+            border: 1px solid #ccc; /* Optional: Add a border for clarity */
+            padding: 10px;      /* Optional: Add padding */
+            box-sizing: border-box; /* Ensure padding doesn't affect total width */
+        }
+        .row {
+            display: flex;
+            margin-bottom: 5px;
+        }
+        .number {
+            width: 50px;
+            height: 50px;
+            background-color: rgb(88, 0, 252);
+            color: white;
+            text-align: center;
+            line-height: 50px;
+            margin-right: 5px;
+            font-weight: bold;
+            border-radius: 10px;
+            border: 2px solid black;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+            transition: background-color 0.3s ease;
+        }
+        .highlight-compare {
+            background-color: yellow !important;
+            color: black;
+        }
+        .highlight-swap {
+            background-color: green !important;
+        }
+        #controls {
+            margin-top: 20px;
+            height: 10%;
+        }
+        #controls input, #controls button, #controls select {
+            margin-right: 5px;
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            background-color: rgb(42, 41, 41);
+            color: white;
+            cursor: hand;
+
+        }
+        #controls button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        #swapCount {
+            margin-top: 30px;
+            font-size: 18px;
+        }
+        .background {
+                background-image: url('./BSAV_BG.png'); /* Replace with actual image path */
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+                
+                background-repeat: no-repeat;
+                height: 100vh;
+                width: 100vw;
+                top:0;
+                left: 0;
+                position: absolute;
+                z-index: -1;
+        }
+        p {
+                text-align: center;
+                border: 1px solid black;
+                border-radius: 10px;
+                background-color: rgb(33, 32, 32,0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="background"></div>
+<h1>Bubble Sort Visualizer</h1>
+
+<div id="controls">
+    <input type="number" id="numberInput" placeholder="Enter a number">
+    <button id="addNumberButton">Add Number</button>
+   
+    <button id="resetButton">Reset</button>
+    <label for="speedSelect">Speed:</label>
+    <select id="speedSelect">
+        <option value="5000">Coffee Break</option>
+        <option value="2000">Very Slow</option>
+        <option value="1000">Slow</option>
+        <option value="500" selected>Normal</option>
+        <option value="100">Fast</option>
+        <option value="0">Instant</option>
+    </select><br><br>
+    <button id="sortButton">Bubble Sort</button>
+    <button id="enhsortButton"> Enhanced Bubble Sort</button>
+</div>
+
+<div id="swapCount"><p>Swaps: 0 (Pass 0) total cycles: 0</p></div>
+
+<div id="visualizer"></div>
+<p>Yellow indicates the two elements being compared. Green indicates the two elements being swapped.</p>
+<p>Enhanced Bubble Sort will skip the last x elements after each pass, where x is the pass number.</p>
+
+<p>Created by Ben Darlington </p>
+<script>
+    let numberArray = [];
+    let swapCount = 0;
+    let isSorting = false;
+    const visualizer = document.getElementById('visualizer');
+    const numberInput = document.getElementById('numberInput');
+    const addNumberButton = document.getElementById('addNumberButton');
+    const sortButton = document.getElementById('sortButton');
+    const resetButton = document.getElementById('resetButton');
+    const swapCountDiv = document.getElementById('swapCount');
+    const speedSelect = document.getElementById('speedSelect');
+
+    // Function to render the array as divs
+    function renderArray(array, highlightIndices = [], swapIndices = []) {
+        const row = document.createElement('div');
+        row.classList.add('row');
+
+        array.forEach((num, index) => {
+            const numberDiv = document.createElement('div');
+            numberDiv.classList.add('number');
+            numberDiv.textContent = num;
+
+            if (highlightIndices.includes(index)) {
+                numberDiv.classList.add('highlight-compare');
+            }
+
+            if (swapIndices.includes(index)) {
+                numberDiv.classList.add('highlight-swap');
+            }
+
+            row.appendChild(numberDiv);
+        });
+
+        visualizer.appendChild(row);
+        visualizer.scrollTop = visualizer.scrollHeight;
+    }
+
+    // Event listener to add a number to the array
+    addNumberButton.addEventListener('click', () => {
+        if (isSorting) return;
+
+        const num = parseInt(numberInput.value);
+        if (!isNaN(num)) {
+            if (numberArray.includes(num)) {
+                alert('Number already exists in the array.');
+                return;
+            }
+            numberArray.push(num);
+            renderArray(numberArray);
+            numberInput.value = ''; // Clear the input field
+        } else {
+            alert('Please enter a valid number.');
+        }
+    });
+
+    // Function to perform bubble sort and visualize each pass
+    async function bubbleSortVisualized(array, delay, enhanced = false) {
+        let arr = array.slice(); // Copy the array to avoid mutating the original
+        let len = arr.length;
+        let isSorted = false;
+        
+
+        // Clear the visualizer before sorting
+        visualizer.innerHTML = '';
+        renderArray(arr); // Initial state
+
+        let pass = 0;
+        let cycle = 0;
+        let enh = 0;
+        while (!isSorted && pass < len - 1) {
+            isSorted = true;
+            if(enhanced)
+            {
+                enh = pass;
+            }
+            for (let i = 0; i < len - enh - 1; i++) {
+                // Highlight the two elements being compared
+                renderArray(arr, [i, i + 1]);
+                
+                cycle++;   
+                if (arr[i] > arr[i + 1]) {
+                    // Swap the elements
+                    [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+                    swapCount++;
+                    isSorted = false;
+                    // Highlight the swapped elements
+                    renderArray(arr, [i, i + 1], [i, i + 1]);
+                    
+                }
+                swapCountDiv.innerHTML = `<p>Swaps: ${swapCount} (Pass ${pass + 1}) total cycles: ${cycle}</p>`; 
+                await sleep(delay);
+            }
+
+            pass++;
+        }
+
+        // Final state
+        renderArray(arr);
+        alert(`Array is sorted in ${swapCount} swaps!`);
+        isSorting = false;
+    }
+
+    // Helper function to create delays
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Event listener to start the bubble sort visualization
+    sortButton.addEventListener('click', () => {
+        if (isSorting) return;
+
+        if (numberArray.length === 0) {
+            alert('Please add some numbers to sort.');
+            return;
+        }
+
+        isSorting = true;
+        disableControls(true);
+        swapCount = 0;
+        swapCountDiv.textContent = `Swaps: ${swapCount}`;
+        bubbleSortVisualized(numberArray, parseInt(speedSelect.value))
+            .then(() => {
+                disableControls(false);
+            })
+            .catch(() => {
+                disableControls(false);
+            });
+    });
+    enhsortButton.addEventListener('click', () => {
+        if (isSorting) return;
+
+        if (numberArray.length === 0) {
+            alert('Please add some numbers to sort.');
+            return;
+        }
+
+        isSorting = true;
+        disableControls(true);
+        swapCount = 0;
+        swapCountDiv.textContent = `Swaps: ${swapCount}`;
+        bubbleSortVisualized(numberArray, parseInt(speedSelect.value),true)
+            .then(() => {
+                disableControls(false);
+            })
+            .catch(() => {
+                disableControls(false);
+            });
+    });
+    // Event listener for the Reset button
+    resetButton.addEventListener('click', () => {
+        if (isSorting) return;
+
+        numberArray = [];
+        swapCount = 0;
+        swapCountDiv.textContent = `Swaps: ${swapCount}`;
+        visualizer.innerHTML = '';
+    });
+
+    // Function to disable or enable controls during sorting
+    function disableControls(status) {
+        addNumberButton.disabled = status;
+        sortButton.disabled = status;
+        resetButton.disabled = status;
+        numberInput.disabled = status;
+        speedSelect.disabled = status;
+    }
+</script>
+
+</body>
+</html>
