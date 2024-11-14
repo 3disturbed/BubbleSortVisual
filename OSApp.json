@@ -1,0 +1,8 @@
+{
+  "name": "Bubble Sort Visualizer",
+  "icon": "https://3disturbed.github.io/BubbleSortVisual/Icon.png",
+  "link": "https://3disturbed.github.io/BubbleSortVisual/bubblesort.html",
+  "repo": "https://github.com/3disturbed/BubbleSortVisual",
+  "type": "visualizer",
+  "target": "frame"
+}
